@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>The Mildly Interesting case of the Redundant Colours by socksy</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">The Mildly Interesting case of the Redundant Colours</h1>
+        <p class="header">Stuff to publish</p>
+
+
+
+        <ul>
+          <li><a class="buttons github" href="https://github.com/socksy">GitHub Profile</a></li>
+        </ul>
+
+      </header>
+      <section>
+        <p>On my Facebook stream, a friend of mine posted the link to <a href="http://en.wikipedia.org/wiki/List_of_colors:_A-M">Wikipedia's List</a> <a href="http://en.wikipedia.org/wiki/List_of_colors:_N-Z">of Colors</a>. This brings up a host of interesting colour names, from rocket metallic to brown-nose, with seemingly unending inventive names for a vast array of minutely differing colours - and the strong suspicion that perhaps there really wasn't much of a difference between, say, "sandy taupe" and "sand dune". Indeed, whether the relationship between names to colours on Wikipedia's pages was a matter pondered by another person commenting on the Facebook post. Being a broke, sad student staying in this particular Friday, I decided to settle the matter.</p>
+
+<p>First of all, the tables were imported from the Wikipedia source text into a text file "colors.txt". These were of the form:</p>
+
+<pre><code>{{Colort/Color|hex=F6ADC6|r=246|g=173|b=198|h=339|s=30 |v=96 |name=[[Carnation pink#Nadeshiko pink|Nadeshiko pink]]}}
+{{Colort/Color|hex=2A8000|r=42 |g=128|b=0  |h=100|s=100|v=50 |name=[[British racing green|Napier green]]}}
+{{Colort/Color|hex=FADA5E|r=250|g=218|b=94 |h=48 |s=62 |v=98 |name=[[Naples yellow]]}}
+</code></pre>
+
+<p>So, a little bit of regex magic could be used using sed to strip the data down to only the hex values and the colour names:</p>
+
+<p><code>cat colors.txt | sed -r "s/.*hex=([0-9A-F]*).*name=\[\[(.*\|)?(.*)(\]\]|\|).*/\1,\3/g" &gt; colors.txt</code></p>
+
+<p>The output isn't perfect, and a few malformed names and entries still exist - but the data is still usable, and now mostly in CSV form (hex,name).</p>
+
+<p>Finally, we have a look at the resulting CSV file we've created. Starting python from the terminal...</p>
+
+<div class="highlight"><pre><span class="o">&gt;&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">csv</span>
+<span class="o">&gt;&gt;&gt;&gt;</span> <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">"colors.txt"</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;&gt;</span> <span class="n">ramalan</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s">','</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;&gt;</span> <span class="n">colours</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="o">&gt;&gt;&gt;&gt;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ramalan</span><span class="p">:</span>
+<span class="o">...</span>      <span class="n">colours</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="o">...</span>
+
+<span class="c"># Here we get rid of some malformed entries</span>
+<span class="o">&gt;&gt;&gt;&gt;</span> <span class="n">colours</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">colours</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">]</span>
+
+<span class="c"># Now we look for duplicates by keeping track of what's been seen</span>
+<span class="o">&gt;&gt;&gt;&gt;</span> <span class="n">seen</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="o">&gt;&gt;&gt;&gt;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">colours</span><span class="p">:</span>
+<span class="o">...</span>      <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+<span class="o">...</span>           <span class="k">if</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">!=</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span> <span class="c"># hex same, name different</span>
+<span class="o">...</span>               <span class="k">print</span> <span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s">" with "</span> <span class="o">+</span> <span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s">" ("</span> <span class="o">+</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">")"</span>
+<span class="o">...</span>      <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+<span class="o">...</span>          <span class="n">seen</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+<span class="o">...</span>
+</pre></div>
+
+<p><a href="https://gist.github.com/socksy/4743803.js">https://gist.github.com/socksy/4743803.js</a></p>
+
+<p>And out comes a list of all the duplicate colour names! With some trailing "]]"s... But curious nonetheless!</p>
+
+<p><a href="https://gist.github.com/socksy/4743817.js">https://gist.github.com/socksy/4743817.js</a></p>
+
+<p>At least, I found it mildly interesting.</p>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		
+  </body>
+</html>
